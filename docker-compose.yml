@@ -1,0 +1,33 @@
+# llama.cpp server with CUDA support, serving every model listed in models.ini.
+#
+# The API is published on the host loopback only (127.0.0.1).
+# To reach it from other machines on the LAN, change the mapping to "8081:8081".
+# "--host 0.0.0.0" below is the address INSIDE the container: exposure to the
+# outside is decided by the "ports" mapping, not by this flag.
+services:
+  llama-server:
+    image: ghcr.io/ggml-org/llama.cpp:full-cuda
+    container_name: llama-server
+    ports:
+      - "127.0.0.1:8081:8081"
+    volumes:
+      - ./gguf:/models
+      - ./models.ini:/config.ini
+    command: |
+      --server
+      --models-preset /config.ini
+      --sleep-idle-seconds 600
+      --parallel 1
+      --port 8081
+      --host 0.0.0.0
+      --jinja
+      --models-autoload
+      --models-max 1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: on-failure
